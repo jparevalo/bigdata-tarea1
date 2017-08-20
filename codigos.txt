@@ -1,0 +1,109 @@
+### CODIGOS (CONSULTAS) UTILIZADOS PARA LA TAREA 1 ###
+
+### PROCESAMIENTO Y ALMACENAMIENTO MASIVO DE DATOS ###
+
+############ JUAN PABLO AREVALO DEL RIO ##############
+
+# PostgreSQL
+
+#------------------------------------------------------------------------
+
+# Agrupar tweets por Hora
+
+SELECT COUNt(*) cnt, to_timestamp(floor(timestamp_ms/3600000)*600) as interval_alias FROM trump GROUP BY interval_alias;
+
+# Agrupar tweets por lenguaje
+
+SELECT COUNt(*) ct, lang FROM trump GROUP BY lang;
+
+# Agrupar tweets por Ubicacion
+
+SELECT count(*) ct, place::json->>'country' FROM trump where place is not null group by place::json->>'country';
+
+# Agrupar tweets por palabra
+
+SELECT count(*) FROM trump where text LIKE '%racism%';
+
+# MongoDB
+
+#------------------------------------------------------------------------
+
+# Agrupar tweets por Hora
+
+db.trump.find({}).forEach(function (doc) {
+    doc.created_at = new Date(doc.created_at);
+    db.trump.save(doc);
+});
+
+var before = new Date()
+db.trump.aggregate(
+   [
+      {
+        $group : {
+           _id : { hour: { $hour: "$created_at" }, day: { $dayOfMonth: "$created_at" } },
+           count: { $sum: 1 }
+        }
+      }
+   ]
+)
+var after = new Date()
+execution_mills = after - before
+
+# Agrupar tweets por lenguaje
+
+var before = new Date()
+db.trump.group({
+    "key": {
+        "lang": true
+    },
+    "initial": {
+        "ct": 0
+    },
+    "reduce": function(obj, prev) {
+        if (true != null) if (true instanceof Array) prev.ct += true.length;
+        else prev.ct++;
+    }
+});
+var after = new Date()
+execution_mills = after - before
+
+# Agrupar tweets por Ubicacion
+
+var before = new Date()
+db.trump.group({
+    "key": {
+        "place.country": true
+    },
+    "initial": {
+        "ct": 0
+    },
+    "reduce": function(obj, prev) {
+        if (true != null) if (true instanceof Array) prev.ct += true.length;
+        else prev.ct++;
+    },
+    "cond": {
+        "place": {
+            "$ne": null
+        }
+    }
+});
+var after = new Date()
+execution_mills = after - before
+
+# Agrupar tweets por palabra
+
+var before = new Date()
+db.trump.group({
+    "initial": {
+        "countstar": 0
+    },
+    "reduce": function(obj, prev) {
+        if (true != null) if (true instanceof Array) prev.countstar += true.length;
+        else prev.countstar++;
+    },
+    "cond": {
+        "text": /racism/i
+    }
+});
+var after = new Date()
+execution_mills = after - before
